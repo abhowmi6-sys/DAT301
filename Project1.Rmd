@@ -1,0 +1,117 @@
+---
+title: "Lab1"
+author: "Auhan Bhowmick"
+date: "2025-11-02"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+```
+
+<h1>Background:</h1>
+The dataset used in this project utilizes data of clothing and accessories. The goal of this project is to determine if their is a correlation between product price and customer ratings. This relationship will be expanded upon by looking into what categories best display this relationship and if higher priced products were more favored by customers. 
+
+<h2>Loading and Cleaning the Data </h2>
+```{r, warning=FALSE}
+product <- read.csv("products.csv")
+
+product <- product %>%
+  mutate(rating_value = as.numeric(str_extract(rating_stars, "\\d+(?:\\.\\d+)?")))
+
+product <- product %>%
+  mutate(price = as.numeric(price_value))
+
+new_product <- product %>%
+  select(title, brand_name, breadcrumbs, price, rating_value, rating_distribution.5star) %>%
+  filter(!is.na(price), !is.na(rating_value), price > 0, rating_value > 0 & rating_value <= 5)
+
+new_product <- new_product %>%
+  mutate(
+    breadcrumbs = str_replace_all(breadcrumbs, "[^\\x20-\\x7E]", ""),
+    category = str_squish(breadcrumbs),
+    category = str_trim(category)
+  ) %>%
+  filter(!is.na(category))
+
+```
+This data was found on kaggle.com from user, Alokthedataguy. The ratings given in the original data set was in the form 4.6 out of 5 stars where it was necessary to extract 4.6 to make the data usable as shown above. Price_value was converted from chr to num to make it usable. The necessary data was selected, NA values were removed, prices less than 0 were removed, and ratings between 0 and 5 were selected. Cleaning was used to isolate the categories which was found in breadcrumbs and NA values were removed too. Cleaning breadcrumbs required the removal of ASCII with a solution found in a stackoverflow forum which used the expression shown in str_replace_all. 
+
+<h2>New_product Dataset </h2>
+The final data set includes the variables title, which is the product title, brand_name, which is the name of the brand, breadcrumbs which was mutated into category which includes all the type of category of each product, price which is the price of the product, rating_value which is the average rating out of five of each product, and rating_distribution.5star which is the breakdown of ratings by 5 star.
+
+<h2>Exploratory Data Analysis </h2>
+Summary of price and rating_value is shown below, showing that the data makes sense for this problem where the min price is not less than 0 and min and max average ratings are between 0 and 5. 
+```{r}
+summary(select(new_product,price,rating_value))
+```
+The first histogram below shows that the prices of products are skewed to the right, meaning that the prices of products are generally low-priced with a few exceptions. This shows that most products bought are common consumer goods while the more expensive ones may be high-end goods. 
+<br> The second histogram shows that the average ratings are left skewed where most are around 4 stars. This shows that most reviews left on Amazon are positive while only a few are negative. 
+```{r,echo=FALSE}
+p1 <- ggplot(new_product, aes(x = price)) +
+geom_histogram(bins = 30, fill = "limegreen", color = "white") +
+labs(title = "Distribution of Product Prices")
+
+p2 <- ggplot(new_product, aes(x = rating_value)) +
+geom_histogram(bins = 20, fill = "orange", color = "white") +
+labs(title = "Distribution of Product Ratings")
+
+p1
+p2
+```
+
+<h4> Relationship between Rating and Price </h4>
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+ggplot(new_product, aes(x = price, y = rating_value)) + 
+  geom_point(color = "blue", alpha = 0.4) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Relationship Between Rating and Price of Amazon Products",
+       x = "Price (USD)",
+       y = "Average Rating") +
+  theme_minimal()
+
+```
+<br>  
+The graph above shows that there is little correlation between rating and price. However, it shows that most ratings are concentrated between 15-30 dollars but has the most range of ratings compared to other prices. It can be observed that the ratings are less spread as the price increases. <br>A second check performed below finds the correlation using the cor function which demonstrates very little correlation between the two. 
+```{r}
+correlation <- cor(new_product$price,new_product$rating_value)
+correlation
+```
+```{r, fig.width=7, fig.height=4, dpi=300, out.width= '100%', echo=FALSE}
+category_summary <- new_product %>%
+  group_by(category) %>%
+  summarise(avg_rating = mean(rating_value, na.rm = TRUE),
+            avg_price = mean(price, na.rm = TRUE),
+            n = n()) %>%
+  arrange(desc(avg_rating))
+
+ggplot(category_summary[1:10,], aes(x = reorder(category, avg_rating), y = avg_rating, 
+                                    fill = avg_price)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Top 10 Categories",
+       x = "Category",
+       y = "Average Rating",
+       fill = "Avg Price (USD)") +
+  theme_minimal()
+```
+The plot above displays the top 10 product categories ranked by their average customer rating. Each bar represents the average rating within that category, and the color fill indicates the category’s average price. It is shown that the top 10 categories are clothing, shoes & jewelry for different men's products. This either shows that customers are satisfied with these items. It also shows that most products have a darker gradient meaning that cheaper items are viewed more favorably. 
+
+<h4> Conclusion </h4>
+Overall, the correlation between price and average rating is weak given a small correlation value. Some trends are present, however, where more average ratings tend to spread less as the price increases, indicating that most products bought on Amazon are common consumer products as more ratings are given at smaller price ranges. Since these products are bought more commonly and that it was shown that reviews tend to be around 4 stars it can be said that higher priced items were not as favored by consumers as lower priced items which is supported by the last figure indicating that the top 10 rated items were more likely to be less than 30 dollars. It is interesting that the top 10 rated items are all men's items, which could show that male consumer behavior may be more favorable in giving higher ratings and that they are the biggest consumers for clothing and accessories on Amazon. In the future, other categories like electronics or makeup could be 
+
+<h4>References </h4>
+https://www.kaggle.com/datasets/lazylad99/amazon-e-commerce-product-and-review-dataset?resource=download&select=reviews.csv
+<br>https://stackoverflow.com/questions/983291/purpose-of-x20-x7e-in-regular-expressions
+
+
+
+
+
