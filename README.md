@@ -1,2 +1,2 @@
 # DAT301
-Projects completed for ASU DAT 301 course focusing on visualizaling data and identifying patterns between different variables.
+Projects completed for ASU DAT 301 course focusing on visualizaling data and identifying patterns between different variables. This repository contains two projects completed during the course with one focusing on a dataset on reviews for clothes and accessories on Amazon and another dataset on drugs and their side effects. These datasets were found on kaggle.com and references are attached at the bottom of the pdf. The project focused on clothes was created in R studio and the other project was created on Jupyter. 
